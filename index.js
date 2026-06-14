@@ -20,5 +20,13 @@ client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
+// HEIFER SAYS HI FRIENDS (≧◡≦) ♡
+
+client.on('guildMemberAdd', (member) => {
+    const channel = member.guild.systemChannel;
+  channel.send(`More friends! Hi ${member.user.tag}!`);
+});
+
+
 
 client.login(process.env.TOKEN);
