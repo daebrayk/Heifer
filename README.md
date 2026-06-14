@@ -1,1 +1,1 @@
-# My Discord Bot 
+# The Heifer Discord Bot 
