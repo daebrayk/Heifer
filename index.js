@@ -128,9 +128,42 @@ client.once('ready', () => {
 
 // HEIFER SAYS HI FRIENDS (≧◡≦) ♡
 
-client.on('guildMemberAdd', (member) => {
-    const channel = member.guild.systemChannel;
-  channel.send(`More friends! Hi ${member.user}!`);
+client.on('guildMemberAdd', async (member) => {
+  const systemChannel = member.guild.systemChannel;
+  const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+
+  if (systemChannel) {
+    await systemChannel.send(`More Friends! Hi ${member.user}!`);
+  }
+
+  if (logChannel) {
+    await logChannel.send(
+      `**Member Joined**\n` +
+      `**User:** ${member.user.tag}\n` +
+      `**ID:** ${member.user.id}\n` +
+      `**Account Created:** ${member.user.createdAt.toDateString()}`
+    );
+  }
+});
+
+
+//Heifer says bye fren (╥﹏╥)
+
+client.on('guildMemberRemove', async (member) => {
+  const systemChannel = member.guild.systemChannel;
+  const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+
+  if (systemChannel) {
+    await systemChannel.send(`Goodbye ${member.user} (╥﹏╥)`);
+  }
+
+  if (logChannel) {
+    await logChannel.send(
+      `**Member Left**\n` +
+      `**User:** ${member.user.tag}\n` +
+      `**ID:** ${member.user.id}`
+    );
+  }
 });
 
 // HEIFER SEES WHAT YOURE SAYING AND HE DOESNT LIKE IT!!! (automated)
