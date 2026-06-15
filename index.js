@@ -206,7 +206,115 @@ client.on('messageCreate', async (message) => {
       );
     }
   }
+
+
+
+const isMentioned = message.mentions.has(client.user);
+const isReply = message.reference !== null;
+const isFactcheckRequest = message.content.toLowerCase().includes('is this true');
+const isThoughtRequest = message.content.toLowerCase().includes('heifer, thoughts?');
+
+if (isFactcheckRequest && isReply) {
+  try {
+    const repliedTo = await message.channel.messages.fetch(message.reference.messageId);
+    const claim = repliedTo.content;
+    await message.channel.sendTyping();
+
+    const result = await model.generateContent(
+      `You are a fact checker, maximum 3 paragraphs". Analyze the following claim and respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
+      {
+        "verdict": "True / False / Partially True / Unverified",
+        "explanation": "A clear detailed explanation of the verdict with as much detail as needed",
+        "sources": ["source 1", "source 2", "source 3"]
+      }
+      Claim: "${claim}"`
+    );
+
+    const raw = result.response.text().replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(raw);
+
+    const verdictEmoji = {
+      'True': '✅',
+      'False': '❌',
+      'Partially True': '⚠️',
+      'Unverified': '❓'
+    }[parsed.verdict] ?? '🔍';
+
+    const explanationChunks = parsed.explanation.match(/.{1,1024}/gs) ?? [parsed.explanation];
+    const explanationFields = explanationChunks.map((chunk, i) => ({
+      name: i === 0 ? 'Explanation' : '​',
+      value: chunk
+    }));
+
+    const embed = new EmbedBuilder()
+      .setTitle(`${verdictEmoji} ${parsed.verdict}`)
+      .setDescription(`**Claim:** ${claim}`)
+      .setColor(
+        parsed.verdict === 'True' ? 0x00ff00 :
+        parsed.verdict === 'False' ? 0xff0000 :
+        parsed.verdict === 'Partially True' ? 0xffaa00 : 0x888888
+      )
+      .setFooter({ text: 'Powered by Gemini' })
+      .setTimestamp();
+
+    embed.addFields(
+      ...explanationFields,
+      { name: 'Sources', value: parsed.sources.map(s => `• ${s}`).join('\n') }
+    );
+
+    await message.reply({ embeds: [embed] });
+
+  } catch (err) {
+    await message.reply("Something went wrong while fact checking. Try again later.");
+    console.error(err);
+  }
+}
+
+if (isThoughtRequest && isReply) {
+  try {
+    const repliedTo = await message.channel.messages.fetch(message.reference.messageId);
+    const claim = repliedTo.content;
+    await message.channel.sendTyping();
+
+    const result = await model.generateContent(
+      `Reply to this statement, entertaining what the user might be thinking helpfully. maximum 3 paragraphs". Respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
+      {
+        "explanation": "A clear detailed explanation with as much detail as needed",
+        "sources": ["source 1", "source 2", "source 3"]
+      }
+      Statement: "${claim}"`
+    );
+
+    const raw = result.response.text();
+    const parsed = JSON.parse(raw);
+
+    const explanationChunks = parsed.explanation.match(/.{1,1024}/gs) ?? [parsed.explanation];
+    const explanationFields = explanationChunks.map((chunk, i) => ({
+      name: i === 0 ? 'Analysis' : '​',
+      value: chunk
+    }));
+
+    const embed = new EmbedBuilder()
+      .setTitle(`💭 Heifer's Thoughts`)
+      .setDescription(`**On:** ${claim}`)
+      .setColor(0x5865f2)
+      .setFooter({ text: 'Powered by Gemini' })
+      .setTimestamp();
+
+    embed.addFields(
+      ...explanationFields,
+      { name: 'Sources', value: parsed.sources.map(s => `• ${s}`).join('\n') }
+    );
+
+    await message.reply({ embeds: [embed] });
+
+  } catch (err) {
+    await message.reply("Something went wrong. Try again later.");
+    console.error(err);
+  }
+}
 });
+
 
 client.on('messageDelete', async (message) => {
   if (message.author.bot) return;
@@ -407,7 +515,7 @@ if (interaction.commandName === 'factcheck') {
       Claim: "${claim}"`
     );
 
-    const raw = result.response.text();
+    const raw = result.response.text().replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(raw);
 
     const verdictEmoji = {
