@@ -32,7 +32,20 @@ const commands = [
     .addStringOption(opt =>
       opt.setName('reason')
         .setDescription("Reason of banishment: ")
+        .setRequired(false)),
+
+  new SlashCommandBuilder()
+    .setName('ban')
+    .setDescription("Heifer! Execute him.")
+    .addUserOption(opt =>
+      opt.setName('target')
+        .setDescription("The sinner: ")
+        .setRequired(true))
+    .addStringOption(opt =>
+      opt.setName('reason')
+        .setDescription("Reason of execution: ")
         .setRequired(false))
+
 ].map(cmd => cmd.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
@@ -86,6 +99,18 @@ client.on('interactionCreate', async (interaction) => {
 
   await target.kick(reason);
   await interaction.reply(`Banished **${target.user.tag}** — reason: ${reason}`);
+}
+  // Heifer... They don't deserve life... take it.
+
+  if (interaction.commandName === 'ban') {
+  const target = interaction.options.getMember('target');
+  const reason = interaction.options.getString('reason') ?? 'death was the only option. ';
+
+
+
+  await target.ban({ reason: reason });
+  await interaction.reply(`Executed **${target.user.tag}** — reason: ${reason}`);
+
 }
 
 });
