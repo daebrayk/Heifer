@@ -223,7 +223,7 @@ if (isFactcheckRequest && isReply) {
     const result = await model.generateContent(
       `You are a fact checker, maximum 3 paragraphs". Analyze the following claim and respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
       {
-        "verdict": "True / False / Partially True / Unverified",
+        "verdict": "True if the claim is proven true with evidence / False if the claim is proven false with evidence / Partially True if the claim has some proven elements but other parts are unverified or false / Unverified only if there is genuinely no evidence either way such as unsolved mysteries or future predictions",
         "explanation": "A clear detailed explanation of the verdict with as much detail as needed",
         "sources": ["source 1", "source 2", "source 3"]
       }
