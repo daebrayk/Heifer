@@ -16,12 +16,24 @@ const client = new Client({
 
 // Slash command builder and stuffs, so Heifer is more useful!!
 
+
 const commands = [
   new SlashCommandBuilder()
     .setName('ping')
-    .setDescription("Heifer isn't alive silly, but this will see if he works!")
-].map(cmd => cmd.toJSON());
+    .setDescription("Heifer isn't alive silly, but this will see if he works!"),
 
+  new SlashCommandBuilder()
+    .setName('kick')
+    .setDescription("Heifer! Banish this heathen!")
+    .addUserOption(opt =>
+      opt.setName('target')
+        .setDescription("The banished: ")
+        .setRequired(true))
+    .addStringOption(opt =>
+      opt.setName('reason')
+        .setDescription("Reason of banishment: ")
+        .setRequired(false))
+].map(cmd => cmd.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
@@ -51,15 +63,33 @@ client.on('guildMemberAdd', (member) => {
   channel.send(`More friends! Hi ${member.user}!`);
 });
 
-//play ping pong with heifer!! (checks latency lol) 
+
 
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
+  //play ping pong with heifer!! (checks latency lol) 
+
   if (interaction.commandName === 'ping') {
-    await interaction.reply(`🏓 Pong! Latency: **${client.ws.ping}ms**`);
+    await interaction.reply(`🏓 Pong! Latency: **${client.ws.ping}ms**`); 
   }
+
+  //HEIFER BANISHES THE HEATHENS (kicks the user from the server, with an optional reason) 
+
+  if (interaction.commandName === 'kick') {
+  const target = interaction.options.getMember('target');
+  const reason = interaction.options.getString('reason') ?? 'kicked cause i felt like it ';
+
+  if (!target.kickable) {
+    return interaction.reply({ content: "Heifer...is too weak to fight that user... (×﹏×)"});
+  }
+
+  await target.kick(reason);
+  await interaction.reply(`Banished **${target.user.tag}** — reason: ${reason}`);
+}
+
 });
+
 
 
 
