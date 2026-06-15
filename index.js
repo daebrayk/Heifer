@@ -22,7 +22,7 @@ const client = new Client({
 const commands = [
   new SlashCommandBuilder()
     .setName('ping')
-    .setDescription("Heifer isn't alive silly, but this will see if he works!"),
+    .setDescription("Heifer should be alive, try!"),
 
   new SlashCommandBuilder()
     .setName('kick')
@@ -63,7 +63,35 @@ const commands = [
       .addStringOption(opt =>
         opt.setName('reason')
           .setDescription("Reason of warning: ")
-          .setRequired(true))
+          .setRequired(true)),
+
+  new SlashCommandBuilder()
+  .setName('mute')
+  .setDescription("Heifer, silence this sinner!")
+  .addUserOption(opt =>
+    opt.setName('target')
+      .setDescription("The sinner: ")
+      .setRequired(true))
+  .addStringOption(opt =>
+    opt.setName('duration')
+    .setDescription("Duration of the mute in seconds, minutes, hours or days.")
+    .setRequired(true))
+  .addStringOption(opt =>
+    opt.setName('reason')
+    .setDescription("Reason of the mute.")
+    .setRequired(true)),
+
+  new SlashCommandBuilder()
+  .setName('unmute')
+  .setDescription("Heifer, forgive this sinner!")
+  .addUserOption(opt =>
+    opt.setName('target')
+      .setDescription("The sinner: ")
+      .setRequired(true))
+  .addStringOption(opt =>
+    opt.setName('reason')
+      .setDescription("Reason of the unmute.")
+      .setRequired(false))
 
 ].map(cmd => cmd.toJSON());
 
@@ -80,6 +108,16 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
     console.error(err);
   }
 })();
+
+//helper function to parse duration for the mute command, so Heifer can decide how long to silence the sinner for!!
+
+
+function parseDuration(str) {
+  const units = { s: 1000, m: 60000, h: 3600000, d: 86400000, y: 31556952000 };
+  const match = str.match(/^(\d+)(s|m|h|d|y)$/);
+  if (!match) return null;
+  return parseInt(match[1]) * units[match[2]];
+}
 
 
 // log into console when the bot isnt too shy hehe
@@ -205,6 +243,73 @@ client.on('interactionCreate', async (interaction) => {
   }
 
 
+if (interaction.commandName === 'mute') {
+  const target = interaction.options.getMember('target');
+  const reason = interaction.options.getString('reason') ?? 'No reason provided';
+  const durationStr = interaction.options.getString('duration');
+  const duration = parseDuration(durationStr);
+  const maxDuration = 28 * 24 * 60 * 60 * 1000; // 28 days in ms
+
+  if (!duration) {
+    return interaction.reply("Invalid duration format. Use something like `10s`, `5m`, `1h`, or `2d`.");
+  }
+
+  if (duration > maxDuration) {
+    return interaction.reply("Maximum mute duration is 28 days. Use `28d` for the longest mute.");
+  }
+
+  if (!target.moderatable) {
+    return interaction.reply("GAHHHHH HEIFER CANT DO THAT!");
+  }
+
+  await target.timeout(duration, reason);
+
+
+  const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+
+  await interaction.reply(
+    `🔇 ${target} has been muted for **${durationStr}** — reason: **${reason}**`
+  );
+
+  if (logChannel) {
+    await logChannel.send(
+      `**Mute**\n` +
+      `**User:** ${target.user.tag}\n` +
+      `**Duration:** ${durationStr}\n` +
+      `**Reason:** ${reason}\n` +
+      `**Muted by:** ${interaction.user.tag}`
+    );
+  }
+}
+
+
+if (interaction.commandName === 'unmute') {
+  const target = interaction.options.getMember('target');
+  const reason = interaction.options.getString('reason') ?? 'No reason provided';
+
+  if (!target.moderatable) {
+    return interaction.reply("GAHHHHH HEIFER CANT DO THAT!");
+  }
+
+  await target.timeout(null, reason);
+
+
+  const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+
+  await interaction.reply(
+    `🔈 ${target} has been unmuted — reason: **${reason}**`
+  );
+
+  if (logChannel) {
+    await logChannel.send(
+      `**Unmute**\n` +
+      `**User:** ${target.user.tag}\n` +
+      `**Reason:** ${reason}\n` +
+      `**Unmuted by:** ${interaction.user.tag}`
+    );
+  }
+
+}
 });
 
 
