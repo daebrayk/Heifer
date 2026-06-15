@@ -2,6 +2,8 @@
 
 require('dotenv').config();
 const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
+const badWords = require('./badwords.json');
+
 
 // client instance... obviously.
 
@@ -93,6 +95,35 @@ client.on('guildMemberAdd', (member) => {
   channel.send(`More friends! Hi ${member.user}!`);
 });
 
+// HEIFER SEES WHAT YOURE SAYING AND HE DOESNT LIKE IT!!! (automated)
+
+client.on('messageCreate', async (message) => {
+  if (message.author.bot) return;
+
+  const foundWord = badWords.words.find(word => 
+    message.content.toLowerCase().includes(word.toLowerCase())
+  );
+
+  if (foundWord) {
+    await message.delete();
+    
+    const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+    
+    await message.channel.send(
+      ` ${message.author} noooo don't say that!11!11.`
+    );
+
+    if (logChannel) {
+      await logChannel.send(
+        `**Auto Warn**\n` +
+        `**User:** ${message.author.tag}\n` +
+        `**Channel:** ${message.channel}\n` +
+        `**Stopped from saying:** ${foundWord}\n` +
+        `**Full message:** ${message.content}`
+      );
+    }
+  }
+});
 
 
 client.on('interactionCreate', async (interaction) => {
@@ -163,7 +194,7 @@ client.on('interactionCreate', async (interaction) => {
 
     if (logChannel) {
       await logChannel.send(
-        `📋 **Manual Warn**\n` +
+        `**Manual Warn**\n` +
         `**User:** ${target.user.tag}\n` +
         `**Reason:** ${reason}\n` +
         `**Warned by:** ${interaction.user.tag}\n` +
