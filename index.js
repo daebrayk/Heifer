@@ -24,7 +24,7 @@ client.once('ready', () => {
 
 client.on('guildMemberAdd', (member) => {
     const channel = member.guild.systemChannel;
-  channel.send(`More friends! Hi ${member.user.tag}!`);
+  channel.send(`More friends! Hi ${member.user}!`);
 });
 
 
