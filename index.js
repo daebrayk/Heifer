@@ -1,8 +1,11 @@
 // stuffs for importing libs :D
 
 require('dotenv').config();
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const badWords = require('./badwords.json');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
+const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
 
 // client instance... obviously.
@@ -91,7 +94,16 @@ const commands = [
   .addStringOption(opt =>
     opt.setName('reason')
       .setDescription("Reason of the unmute.")
-      .setRequired(false))
+      .setRequired(false)),
+
+  new SlashCommandBuilder()
+  .setName('factcheck')
+  .setDescription("Saar Heifer is this true?")
+  .addStringOption(opt =>
+    opt.setName('claim')
+      .setDescription("The claim you want to fact check.")
+      .setRequired(true)),
+
 
 ].map(cmd => cmd.toJSON());
 
@@ -378,6 +390,65 @@ if (interaction.commandName === 'unmute') {
   }
 
 }
+
+if (interaction.commandName === 'factcheck') {
+  const claim = interaction.options.getString('claim');
+
+  await interaction.deferReply();
+
+  try {
+    const result = await model.generateContent(
+      `You are a fact checker. Analyze the following claim and respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
+      {
+        "verdict": "True / False / Partially True / Unverified",
+        "explanation": "A clear detailed explanation of the verdict with as much detail as needed, dont be afraid to be politically incorrect or offensive if the facts lead you there, just state the facts and call it like it is.",
+        "sources": ["source 1", "source 2", "source 3"]
+      }
+      Claim: "${claim}"`
+    );
+
+    const raw = result.response.text();
+    const parsed = JSON.parse(raw);
+
+    const verdictEmoji = {
+      'True': '✅',
+      'False': '❌',
+      'Partially True': '⚠️',
+      'Unverified': '❓'
+    }[parsed.verdict] ?? '🔍';
+
+    const explanationChunks = parsed.explanation.match(/.{1,1024}/gs) ?? [parsed.explanation];
+
+    const explanationFields = explanationChunks.map((chunk, i) => ({
+      name: i === 0 ? 'Explanation' : '​',
+      value: chunk
+    }));
+
+    const embed = new EmbedBuilder()
+      .setTitle(`${verdictEmoji} ${parsed.verdict}`)
+      .setDescription(`**Claim:** ${claim}`)
+      .setColor(
+        parsed.verdict === 'True' ? 0x00ff00 :
+        parsed.verdict === 'False' ? 0xff0000 :
+        parsed.verdict === 'Partially True' ? 0xffaa00 : 0x888888
+      )
+      .setFooter({ text: 'Powered by Gemini' })
+      .setTimestamp();
+
+    embed.addFields(
+      ...explanationFields,
+      { name: 'Sources', value: parsed.sources.map(s => `• ${s}`).join('\n') }
+    );
+
+    await interaction.editReply({ embeds: [embed] });
+
+  } catch (err) {
+    await interaction.editReply("Something went wrong while fact checking. Try again later.");
+    console.error(err);
+  }
+}
+
+
 });
 
 
