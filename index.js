@@ -196,6 +196,41 @@ client.on('messageCreate', async (message) => {
   }
 });
 
+client.on('messageDelete', async (message) => {
+  if (message.author.bot) return;
+
+    const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+  
+    if (logChannel) {
+      await logChannel.send(
+        `**Deleted Message**\n` +
+        `**User:** ${message.author.tag}\n` +
+        `**Channel:** ${message.channel}\n` +
+        `**Content:** ${message.content}`
+      );
+    }
+
+});
+
+  client.on('messageUpdate', async (oldMessage, newMessage) => {
+    if (oldMessage.author.bot) return;
+    if (oldMessage.content === newMessage.content) return;
+
+
+    const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+
+    if (logChannel) {
+      await logChannel.send(
+        `**Edited Message**\n` +
+        `**User:** ${oldMessage.author.tag}\n` + 
+        `**Channel:** ${oldMessage.channel}\n` +
+        `**Before:** ${oldMessage.content}\n` +
+        `**After:** ${newMessage.content}`
+      );
+    }
+    });
+
+
 
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
