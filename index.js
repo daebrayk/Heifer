@@ -44,7 +44,24 @@ const commands = [
     .addStringOption(opt =>
       opt.setName('reason')
         .setDescription("Reason of execution: ")
-        .setRequired(false))
+        .setRequired(false)),
+
+
+  new SlashCommandBuilder()
+      .setName('warn')
+      .setDescription("Heifer, scold him!")
+      .addUserOption(opt =>
+        opt.setName('target')
+          .setDescription("The sinner: ")
+          .setRequired(true))
+      .addStringOption(opt =>
+        opt.setName('message_id')
+          .setDescription("ID of message")
+          .setRequired(true))
+      .addStringOption(opt =>
+        opt.setName('reason')
+          .setDescription("Reason of warning: ")
+          .setRequired(true))
 
 ].map(cmd => cmd.toJSON());
 
@@ -112,6 +129,50 @@ client.on('interactionCreate', async (interaction) => {
   await interaction.reply(`Executed **${target.user.tag}** — reason: ${reason}`);
 
 }
+
+  if (interaction.commandName === 'warn'){
+  const target = interaction.options.getMember('target');
+
+
+  }
+
+  //warn interaction, HEIFER SEES WHAT YOURE SAYING AND HE DOESNT LIKE IT!!!
+
+  if (interaction.commandName === 'warn') {
+    const target = interaction.options.getMember('target');
+    const reason = interaction.options.getString('reason') ?? 'No reason provided';
+    const messageId = interaction.options.getString('message_id');
+
+    let offendingMessage = null;
+
+    if (messageId) {
+      try {
+        offendingMessage = await interaction.channel.messages.fetch(messageId);
+      } catch {
+        return interaction.reply("I couldn't find that message. Double check the ID.");
+      }
+    }
+
+    const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+
+    const warnMessage = offendingMessage
+      ? `⚠️ ${target} you have been warned for: **${reason}**\n> ${offendingMessage.content}`
+      : `⚠️ ${target} you have been warned for: **${reason}**`;
+
+    await interaction.reply(warnMessage);
+
+    if (logChannel) {
+      await logChannel.send(
+        `📋 **Manual Warn**\n` +
+        `**User:** ${target.user.tag}\n` +
+        `**Reason:** ${reason}\n` +
+        `**Warned by:** ${interaction.user.tag}\n` +
+        (offendingMessage ? `**Message:** ${offendingMessage.content}` : `**No message provided**`)
+      );
+    }
+    
+  }
+
 
 });
 
