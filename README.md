@@ -2,7 +2,7 @@
 
 > *Keeps the peace. *
 
-Heifer is a Discord bot built to keep your server in order — moderating sinners, welcoming the faithful, and fact-checking the dumb. Powered by Node.js, discord.js, and Google Gemini (subject to change).
+Heifer is a Discord bot built to keep your server in order by moderating sinners, welcoming the faithful, and fact-checking the dumb. Powered by Node.js, discord.js, and Google Gemini (subject to change).
 
 ---
 
