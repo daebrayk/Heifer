@@ -8,7 +8,7 @@ Heifer is a Discord bot built to keep your server in order by moderating sinners
 
 ##  What Heifer Does
 
-Heifer is a full-featured moderation and AI-assisted bot. It punishes those who deserve it, and greets those who don't, I mean who cares right? You don't have to explain yourself and heifer wont ask questions.
+Heifer is a full-featured moderation and AI-assisted bot. It punishes those who deserve it... or those who don't, I mean who cares right? You don't have to explain yourself and heifer wont ask questions.
 
 ---
 
