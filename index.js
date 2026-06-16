@@ -1,7 +1,7 @@
 // stuffs for importing libs :D
 
 require('dotenv').config();
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const badWords = require('./badwords.json');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
@@ -19,15 +19,10 @@ const client = new Client({
   ]
 });
 
-// Slash command builder and stuffs, so Heifer is more useful!!
+//  making slash commands, (the array is at the bottom)
 
 
-const commands = [
-  new SlashCommandBuilder()
-    .setName('ping')
-    .setDescription("Heifer should be alive, try!"),
-
-  new SlashCommandBuilder()
+const kickCommand = new SlashCommandBuilder()
     .setName('kick')
     .setDescription("Heifer! Banish this heathen!")
     .addUserOption(opt =>
@@ -37,9 +32,10 @@ const commands = [
     .addStringOption(opt =>
       opt.setName('reason')
         .setDescription("Reason of banishment: ")
-        .setRequired(false)),
+        .setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers);
 
-  new SlashCommandBuilder()
+const banCommand = new SlashCommandBuilder()
     .setName('ban')
     .setDescription("Heifer! Execute him.")
     .addUserOption(opt =>
@@ -49,10 +45,10 @@ const commands = [
     .addStringOption(opt =>
       opt.setName('reason')
         .setDescription("Reason of execution: ")
-        .setRequired(false)),
+        .setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers);
 
-
-  new SlashCommandBuilder()
+const warnCommand = new SlashCommandBuilder()
       .setName('warn')
       .setDescription("Heifer, scold him!")
       .addUserOption(opt =>
@@ -66,9 +62,10 @@ const commands = [
       .addStringOption(opt =>
         opt.setName('reason')
           .setDescription("Reason of warning: ")
-          .setRequired(true)),
+          .setRequired(true))
+      .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers);
 
-  new SlashCommandBuilder()
+const muteCommand = new SlashCommandBuilder()
   .setName('mute')
   .setDescription("Heifer, silence this sinner!")
   .addUserOption(opt =>
@@ -82,9 +79,10 @@ const commands = [
   .addStringOption(opt =>
     opt.setName('reason')
     .setDescription("Reason of the mute.")
-    .setRequired(true)),
+    .setRequired(true))
+  .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers);
 
-  new SlashCommandBuilder()
+const unmuteCommand = new SlashCommandBuilder()
   .setName('unmute')
   .setDescription("Heifer, forgive this sinner!")
   .addUserOption(opt =>
@@ -94,34 +92,34 @@ const commands = [
   .addStringOption(opt =>
     opt.setName('reason')
       .setDescription("Reason of the unmute.")
-      .setRequired(false)),
+      .setRequired(false))
+  .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers);
 
-  new SlashCommandBuilder()
-  .setName('factcheck')
-  .setDescription("Saar Heifer is this true?")
-  .addStringOption(opt =>
-    opt.setName('claim')
-      .setDescription("The claim you want to fact check.")
-      .setRequired(true)),
+      // array of commands to register, add new ones up there ^^
+
+const commands = [banCommand, warnCommand, kickCommand, muteCommand, unmuteCommand].map(cmd => cmd.toJSON());
 
 
-].map(cmd => cmd.toJSON());
 
-const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+      // register the commands with discord, so they show up in the slash command menu
 
-(async () => {
-  try {
-    await rest.put(
-      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
-      { body: commands }
-    );
-    console.log('Slash commands registered.');
-  } catch (err) {
-    console.error(err);
-  }
-})();
 
-//helper function to parse duration for the mute command, so Heifer can decide how long to silence the sinner for!!
+      const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+
+      (async () => {
+        try {
+          await rest.put(
+            Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+            { body: commands }
+          );
+          console.log('Slash commands registered.');
+        } catch (err) {
+          console.error(err);
+        }
+      })();
+
+
+//helper function to parse duration for the mute command, so Heifer can decide how long to silence the sinner for!! (year is kinda useless but yk.)
 
 
 function parseDuration(str) {
@@ -132,13 +130,13 @@ function parseDuration(str) {
 }
 
 
-// log into console when the bot isnt too shy hehe
+// log into console when the bot
 
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
-// HEIFER SAYS HI FRIENDS (≧◡≦) ♡
+// HEIFER SAYS HI FRIENDS (≧◡≦) ♡ (welcome message + logging the join in the log channel)
 
 client.on('guildMemberAdd', async (member) => {
   const systemChannel = member.guild.systemChannel;
@@ -159,7 +157,7 @@ client.on('guildMemberAdd', async (member) => {
 });
 
 
-//Heifer says bye fren (╥﹏╥)
+//Heifer says bye fren (╥﹏╥) (goodbye message + logging the leave in the log channel)
 
 client.on('guildMemberRemove', async (member) => {
   const systemChannel = member.guild.systemChannel;
@@ -178,7 +176,7 @@ client.on('guildMemberRemove', async (member) => {
   }
 });
 
-// HEIFER SEES WHAT YOURE SAYING AND HE DOESNT LIKE IT!!! (automated)
+// HEIFER SEES WHAT YOURE SAYING AND HE DOESNT LIKE IT!!! (automated warn based on badwords.json, add filtered words there)
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
@@ -209,30 +207,51 @@ client.on('messageCreate', async (message) => {
 
 
 
-const isMentioned = message.mentions.has(client.user);
-const isReply = message.reference !== null;
-const isFactcheckRequest = message.content.toLowerCase().includes('is this true');
-const isThoughtRequest = message.content.toLowerCase().includes('heifer, thoughts?');
+const content = message.content.toLowerCase();
+const isFactcheckRequest = content.includes('is this true');
+const isThoughtRequest = content.includes('heifer, thoughts?');
 
-if (isFactcheckRequest && isReply) {
-  try {
-    const repliedTo = await message.channel.messages.fetch(message.reference.messageId);
-    const claim = repliedTo.content;
-    await message.channel.sendTyping();
+// If neither command is matched or it's not a reply then do nothing
+if (!(isFactcheckRequest || isThoughtRequest) || message.reference === null) return;
 
-    const result = await model.generateContent(
-      `You are a fact checker, maximum 3 paragraphs". Analyze the following claim and respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
-      {
-        "verdict": "True if the claim is proven true with evidence / False if the claim is proven false with evidence / Partially True if the claim has some proven elements but other parts are unverified or false / Unverified only if there is genuinely no evidence either way such as unsolved mysteries or future predictions",
-        "explanation": "A clear detailed explanation of the verdict with as much detail as needed",
-        "sources": ["source 1", "source 2", "source 3"]
-      }
-      Claim: "${claim}"`
-    );
+try {
+  // Fetch context once
+  const repliedTo = await message.channel.messages.fetch(message.reference.messageId);
+  const claim = repliedTo.content;
+  await message.channel.sendTyping();
 
-    const raw = result.response.text().replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(raw);
+  let prompt = "";
+  let embedTitle = "";
+  let embedColor = 0x5865f2; // Default blurple
+  let isFactCheck = false;
 
+  // Build the prompt based on the trigger
+  if (isFactcheckRequest) {
+    isFactCheck = true;
+    prompt = `You are a fact checker. Maximum 3 paragraphs. Analyze the following claim and respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
+    {
+      "verdict": "True if the claim is proven true with evidence / False if the claim is proven false with evidence / Partially True if the claim has some proven elements but other parts are unverified or false / Unverified only if there is genuinely no evidence either way such as unsolved mysteries or future predictions",
+      "explanation": "A clear detailed explanation of the verdict with as much detail as needed",
+      "sources": ["source 1", "source 2", "source 3"]
+    }
+    Claim: "${claim}"`;
+  } else {
+    embedTitle = `💭 Heifer's Thoughts`;
+    prompt = `Reply to this statement, entertaining what the user might be thinking helpfully. Maximum 3 paragraphs. Respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
+    {
+      "explanation": "A clear detailed explanation with as much detail as needed",
+      "sources": ["source 1", "source 2", "source 3"]
+    }
+    Statement: "${claim}"`;
+  }
+
+  // Hit the API and parse
+  const result = await model.generateContent(prompt);
+  const raw = result.response.text().replace(/```json|```/g, '').trim();
+  const parsed = JSON.parse(raw);
+
+  // some nice UI elements ig
+  if (isFactCheck) {
     const verdictEmoji = {
       'True': '✅',
       'False': '❌',
@@ -240,80 +259,43 @@ if (isFactcheckRequest && isReply) {
       'Unverified': '❓'
     }[parsed.verdict] ?? '🔍';
 
-    const explanationChunks = parsed.explanation.match(/.{1,1024}/gs) ?? [parsed.explanation];
-    const explanationFields = explanationChunks.map((chunk, i) => ({
-      name: i === 0 ? 'Explanation' : '​',
-      value: chunk
-    }));
-
-    const embed = new EmbedBuilder()
-      .setTitle(`${verdictEmoji} ${parsed.verdict}`)
-      .setDescription(`**Claim:** ${claim}`)
-      .setColor(
-        parsed.verdict === 'True' ? 0x00ff00 :
-        parsed.verdict === 'False' ? 0xff0000 :
-        parsed.verdict === 'Partially True' ? 0xffaa00 : 0x888888
-      )
-      .setFooter({ text: 'Powered by Gemini' })
-      .setTimestamp();
-
-    embed.addFields(
-      ...explanationFields,
-      { name: 'Sources', value: parsed.sources.map(s => `• ${s}`).join('\n') }
-    );
-
-    await message.reply({ embeds: [embed] });
-
-  } catch (err) {
-    await message.reply("Something went wrong while fact checking. Try again later.");
-    console.error(err);
+    embedTitle = `${verdictEmoji} ${parsed.verdict}`;
+    embedColor = parsed.verdict === 'True' ? 0x00ff00 :
+                 parsed.verdict === 'False' ? 0xff0000 :
+                 parsed.verdict === 'Partially True' ? 0xffaa00 : 0x888888;
   }
-}
 
-if (isThoughtRequest && isReply) {
-  try {
-    const repliedTo = await message.channel.messages.fetch(message.reference.messageId);
-    const claim = repliedTo.content;
-    await message.channel.sendTyping();
+  // Chunk the text cause if it hits the 1024 char limit it kills itself
+  const explanationChunks = parsed.explanation.match(/.{1,1024}/gs) ?? [parsed.explanation];
+  const explanationFields = explanationChunks.map((chunk, i) => ({
+    name: i === 0 ? (isFactCheck ? 'Explanation' : 'Analysis') : '​',
+    value: chunk
+  }));
 
-    const result = await model.generateContent(
-      `Reply to this statement, entertaining what the user might be thinking helpfully. maximum 3 paragraphs". Respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
-      {
-        "explanation": "A clear detailed explanation with as much detail as needed",
-        "sources": ["source 1", "source 2", "source 3"]
-      }
-      Statement: "${claim}"`
-    );
+  // Ensure sources exist before mapping them
+  const sourcesText = parsed.sources?.length ? parsed.sources.map(s => `• ${s}`).join('\n') : 'None provided';
 
-    const raw = result.response.text();
-    const parsed = JSON.parse(raw);
-
-    const explanationChunks = parsed.explanation.match(/.{1,1024}/gs) ?? [parsed.explanation];
-    const explanationFields = explanationChunks.map((chunk, i) => ({
-      name: i === 0 ? 'Analysis' : '​',
-      value: chunk
-    }));
-
-    const embed = new EmbedBuilder()
-      .setTitle(`💭 Heifer's Thoughts`)
-      .setDescription(`**On:** ${claim}`)
-      .setColor(0x5865f2)
-      .setFooter({ text: 'Powered by Gemini' })
-      .setTimestamp();
-
-    embed.addFields(
+  const embed = new EmbedBuilder()
+    .setTitle(embedTitle)
+    .setDescription(`**${isFactCheck ? 'Claim' : 'On'}:** ${claim}`)
+    .setColor(embedColor)
+    .setFooter({ text: 'Powered by Gemini' })
+    .setTimestamp()
+    .addFields(
       ...explanationFields,
-      { name: 'Sources', value: parsed.sources.map(s => `• ${s}`).join('\n') }
+      { name: 'Sources', value: sourcesText }
     );
 
-    await message.reply({ embeds: [embed] });
+  await message.reply({ embeds: [embed] });
 
-  } catch (err) {
-    await message.reply("Something went wrong. Try again later.");
-    console.error(err);
-  }
+} catch (err) {
+  await message.reply("Something went wrong while processing your request. Try again later.");
+  console.error(err);
 }
 });
+
+
+  // logs deleted messages in the log channel specified in .env
 
 
 client.on('messageDelete', async (message) => {
@@ -352,20 +334,19 @@ client.on('messageDelete', async (message) => {
 
 
 
+
+
+    //for called slash commands theyre all here just scroll down and its self-explanitory.
+
+
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  //play ping pong with heifer!! (checks latency lol) 
-
-  if (interaction.commandName === 'ping') {
-    await interaction.reply(`🏓 Pong! Latency: **${client.ws.ping}ms**`); 
-  }
-
-  //HEIFER BANISHES THE HEATHENS (kicks the user from the server, with an optional reason) 
 
   if (interaction.commandName === 'kick') {
   const target = interaction.options.getMember('target');
   const reason = interaction.options.getString('reason') ?? 'kicked cause i felt like it ';
+  const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
 
   if (!target.kickable) {
     return interaction.reply({ content: "Heifer...is too weak to fight that user... (×﹏×)"});
@@ -373,27 +354,40 @@ client.on('interactionCreate', async (interaction) => {
 
   await target.kick(reason);
   await interaction.reply(`Banished **${target.user.tag}** — reason: ${reason}`);
+
+        if (logChannel) {
+      await logChannel.send(
+        `**Kick**\n` +
+        `**User:** ${target.user.tag}\n` +
+        `**Reason:** ${reason}\n` +
+        `**Kicked by:** ${interaction.user.tag}\n`
+      );
+    }
+
+
 }
-  // Heifer... They don't deserve life... take it.
 
   if (interaction.commandName === 'ban') {
   const target = interaction.options.getMember('target');
   const reason = interaction.options.getString('reason') ?? 'death was the only option. ';
+  const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
 
-
+    if (!target.bannable) return interaction.reply("Heifer isn't strong enough to execute this user!");
 
   await target.ban({ reason: reason });
   await interaction.reply(`Executed **${target.user.tag}** — reason: ${reason}`);
 
+      if (logChannel) {
+      await logChannel.send(
+        `**Ban**\n` +
+        `**User:** ${target.user.tag}\n` +
+        `**Reason:** ${reason}\n` +
+        `**Banned by:** ${interaction.user.tag}\n`
+      );
+    }
+
 }
 
-  if (interaction.commandName === 'warn'){
-  const target = interaction.options.getMember('target');
-
-
-  }
-
-  //warn interaction, HEIFER SEES WHAT YOURE SAYING AND HE DOESNT LIKE IT!!!
 
   if (interaction.commandName === 'warn') {
     const target = interaction.options.getMember('target');
@@ -430,7 +424,6 @@ client.on('interactionCreate', async (interaction) => {
     
   }
 
-
 if (interaction.commandName === 'mute') {
   const target = interaction.options.getMember('target');
   const reason = interaction.options.getString('reason') ?? 'No reason provided';
@@ -441,17 +434,14 @@ if (interaction.commandName === 'mute') {
   if (!duration) {
     return interaction.reply("Invalid duration format. Use something like `10s`, `5m`, `1h`, or `2d`.");
   }
-
   if (duration > maxDuration) {
     return interaction.reply("Maximum mute duration is 28 days. Use `28d` for the longest mute.");
   }
-
   if (!target.moderatable) {
     return interaction.reply("GAHHHHH HEIFER CANT DO THAT!");
   }
 
   await target.timeout(duration, reason);
-
 
   const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
 
@@ -497,63 +487,6 @@ if (interaction.commandName === 'unmute') {
     );
   }
 
-}
-
-if (interaction.commandName === 'factcheck') {
-  const claim = interaction.options.getString('claim');
-
-  await interaction.deferReply();
-
-  try {
-    const result = await model.generateContent(
-      `You are a fact checker. Analyze the following claim and respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
-      {
-        "verdict": "True / False / Partially True / Unverified",
-        "explanation": "A clear detailed explanation of the verdict with as much detail as needed, dont be afraid to be politically incorrect or offensive if the facts lead you there, just state the facts and call it like it is.",
-        "sources": ["source 1", "source 2", "source 3"]
-      }
-      Claim: "${claim}"`
-    );
-
-    const raw = result.response.text().replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(raw);
-
-    const verdictEmoji = {
-      'True': '✅',
-      'False': '❌',
-      'Partially True': '⚠️',
-      'Unverified': '❓'
-    }[parsed.verdict] ?? '🔍';
-
-    const explanationChunks = parsed.explanation.match(/.{1,1024}/gs) ?? [parsed.explanation];
-
-    const explanationFields = explanationChunks.map((chunk, i) => ({
-      name: i === 0 ? 'Explanation' : '​',
-      value: chunk
-    }));
-
-    const embed = new EmbedBuilder()
-      .setTitle(`${verdictEmoji} ${parsed.verdict}`)
-      .setDescription(`**Claim:** ${claim}`)
-      .setColor(
-        parsed.verdict === 'True' ? 0x00ff00 :
-        parsed.verdict === 'False' ? 0xff0000 :
-        parsed.verdict === 'Partially True' ? 0xffaa00 : 0x888888
-      )
-      .setFooter({ text: 'Powered by Gemini' })
-      .setTimestamp();
-
-    embed.addFields(
-      ...explanationFields,
-      { name: 'Sources', value: parsed.sources.map(s => `• ${s}`).join('\n') }
-    );
-
-    await interaction.editReply({ embeds: [embed] });
-
-  } catch (err) {
-    await interaction.editReply("Something went wrong while fact checking. Try again later.");
-    console.error(err);
-  }
 }
 
 
