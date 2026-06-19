@@ -51,33 +51,4 @@ Verdicts are color coded:
 
 ---
 
-## Tech Stack
-
-- [Node.js](https://nodejs.org)
-- [discord.js v14](https://discord.js.org)
-- [Google Gemini API](https://aistudio.google.com) via `@google/generative-ai`
-- [dotenv](https://github.com/motdotla/dotenv)
-
----
-
-## Setup
-
-1. Clone the repo
-2. Run `npm install`
-3. Create a `.env` file with the following:
-
-```
-TOKEN=your_bot_token
-CLIENT_ID=your_application_id
-GUILD_ID=your_server_id
-LOG_CHANNEL_ID=your_log_channel_id
-GEMINI_KEY=your_gemini_api_key
-```
-
-4. Run `node index.js`
-
-> Never share or commit your `.env` file. It contains sensitive credentials.
-
----
-
 *heifer might be sentient, we're not sure but we are actively looking into it. thanks ^_^
