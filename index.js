@@ -139,7 +139,7 @@ client.once('ready', () => {
 // HEIFER SAYS HI FRIENDS (≧◡≦) ♡ (welcome message + logging the join in the log channel)
 
 client.on('guildMemberAdd', async (member) => {
-  const systemChannel = member.guild.systemChannel;
+  const systemChannel = client.channels.cache.get(process.env.WELCOME_CHANNEL_ID);
   const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
 
   if (systemChannel) {
@@ -160,7 +160,7 @@ client.on('guildMemberAdd', async (member) => {
 //Heifer says bye fren (╥﹏╥) (goodbye message + logging the leave in the log channel)
 
 client.on('guildMemberRemove', async (member) => {
-  const systemChannel = member.guild.systemChannel;
+  const systemChannel = client.channels.cache.get(process.env.WELCOME_CHANNEL_ID);
   const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
 
   if (systemChannel) {
@@ -210,9 +210,11 @@ client.on('messageCreate', async (message) => {
 const content = message.content.toLowerCase();
 const isFactcheckRequest = content.includes('is this true');
 const isThoughtRequest = content.includes('heifer, thoughts?');
+const isMentioned = message.mentions.has(client.user);
+const userMessage = message.content.replace(`<@${client.user.id}>`, '').trim();
 
 // If neither command is matched or it's not a reply then do nothing
-if (!(isFactcheckRequest || isThoughtRequest) || message.reference === null) return;
+if (!(isFactcheckRequest || isThoughtRequest || isMentioned) || message.reference === null) return;
 
 try {
   // Fetch context once
@@ -225,10 +227,24 @@ try {
   let embedColor = 0x5865f2; // Default blurple
   let isFactCheck = false;
 
-  // Build the prompt based on the trigger
-  if (isFactcheckRequest) {
+
+ if (isMentioned && !isFactcheckRequest && !isThoughtRequest) {
+  const result = await model.generateContent(
+    `You are Heifer, a Discord bot.
+    You have an indifferent and unbiased personality. You respond helpfully.
+    Keep responses concise and conversational, no longer than 3 sentences.
+    The user is replying to this message: "${claim}"
+    ${userMessage ? `They also added: "${userMessage}"` : ''}
+    Respond naturally to both if both are present, or one of them if only one is present.`
+  );
+  const response = result.response.text().replace(/```json|```/g, '').trim();
+  await message.reply(response);
+  return; // ← stop here, don't fall through to embed code
+}
+
+  else if (isFactcheckRequest) {
     isFactCheck = true;
-    prompt = `You are Heifer, a Discord bot assistant. You are not Gemini or any other AI — you are Heifer. You are a fact checker. Maximum 3 paragraphs. Analyze the following claim and respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
+    prompt = `You are Heifer, a Discord bot assistant. You are a fact checker. Maximum 3 paragraphs. Analyze the following claim and respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
     {
       "verdict": "True if the claim is proven true with evidence / False if the claim is proven false with evidence / Partially True if the claim has some proven elements but other parts are unverified or false / Unverified only if there is genuinely no evidence either way such as unsolved mysteries or future predictions",
       "explanation": "A clear detailed explanation of the verdict with as much detail as needed",
@@ -237,7 +253,7 @@ try {
     Claim: "${claim}"`;
   } else {
     embedTitle = `💭 Heifer's Thoughts`;
-    prompt = `You are Heifer, a Discord bot assistant. You are not Gemini or any other AI — you are Heifer.Reply to this statement, entertaining what the user might be thinking helpfully. Maximum 3 paragraphs. Respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
+    prompt = `You are Heifer, a Discord bot assistant. Reply to this statement, entertaining what the user might be thinking helpfully. Maximum 3 paragraphs. Respond ONLY with a JSON object, no markdown, no backticks, just raw JSON in this exact structure:
     {
       "explanation": "A clear detailed explanation with as much detail as needed",
       "sources": ["source 1", "source 2", "source 3"]
