@@ -52,4 +52,5 @@ Verdicts are color coded:
 
 ---
 
-*heifer might be sentient, we're not sure but we are actively looking into it. thanks ^_^
+* p.s: heifer might be sentient, we're not sure but we are actively looking into it. thanks ^_^
+* p.p.s: this bot isn't vibecoded... also its my first bot don't be harsh thanks.
