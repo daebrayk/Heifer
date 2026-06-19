@@ -32,7 +32,7 @@ Heifer is powered by Google Gemini and can fact-check claims or analyze statemen
 |---|---|---|
 | `is this true` | Reply to any message with this phrase | Fact checks the message with a verdict, explanation and sources |
 | `heifer, thoughts?` | Reply to any message with this phrase | Gives an objective analysis of the message with sources |
-| mention or reply | reply to any message, or @ him with a new one | gives a simpler more concise answer- good for simpler explanations |
+| Mention or Reply | reply to any message, or @ him with a new one | gives a simpler more concise answer- good for simpler explanations |
 
 Verdicts are color coded:
 - ✅ **True** — proven with evidence
